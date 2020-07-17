@@ -1,0 +1,2100 @@
+Build.gradle (Module:app)
+package com.example.demochatapp.Adapter;
+
+import android.content.Context;
+import android.content.Intent;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
+import com.bumptech.glide.Glide;
+import com.example.demochatapp.MessageActivity;
+import com.example.demochatapp.Model.Chat;
+import com.example.demochatapp.Model.User;
+import com.example.demochatapp.R;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import java.util.List;
+public class UserAdapter extends RecyclerView.Adapter&lt;UserAdapter.ViewHolder&gt; {
+Context mContext;
+List&lt;User&gt; mUsers;
+boolean ischat;
+String theLastMessage;
+public UserAdapter(Context mContext, List&lt;User&gt; mUsers, boolean ischat) {
+this.mContext = mContext;
+this.mUsers = mUsers;
+this.ischat = ischat;
+}
+@NonNull
+@Override
+public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+View view = LayoutInflater.from(mContext).inflate(R.layout.user_item,parent,false);
+return new UserAdapter.ViewHolder(view);
+
+}
+@Override
+public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+final User user = mUsers.get(position);
+holder.username.setText(user.getUsername());
+if(&quot;default&quot;.equals(user.getImageURL())){
+holder.profile_image.setImageResource(R.mipmap.ic_launcher);
+}else{
+Glide.with(mContext).load(user.getImageURL()).into(holder.profile_image);
+}
+if(ischat){
+lastmessage(user.getId(),holder.last_msg);
+}else{
+holder.last_msg.setVisibility(View.GONE);
+}
+if(ischat){
+if(user.getStatus().equals(&quot;online&quot;)){
+holder.img_on.setVisibility(View.VISIBLE);
+holder.img_off.setVisibility(View.GONE);
+}
+else{
+holder.img_on.setVisibility(View.GONE);
+holder.img_off.setVisibility(View.VISIBLE);
+}
+}else{
+holder.img_on.setVisibility(View.GONE);
+holder.img_off.setVisibility(View.GONE);
+}
+holder.itemView.setOnClickListener(new View.OnClickListener() {
+@Override
+public void onClick(View view) {
+Intent intent = new Intent(mContext, MessageActivity.class);
+intent.putExtra(&quot;userid&quot;,user.getId());
+mContext.startActivity(intent);
+}
+});
+}
+@Override
+public int getItemCount() {
+return mUsers.size();
+}
+
+class ViewHolder extends RecyclerView.ViewHolder{
+
+public TextView username;
+public ImageView profile_image;
+private ImageView img_on;
+private ImageView img_off;
+private TextView last_msg;
+public ViewHolder(@NonNull View itemView) {
+super(itemView);
+username = itemView.findViewById(R.id.username);
+profile_image = itemView.findViewById(R.id.profile_image);
+img_on= itemView.findViewById(R.id.img_on);
+img_off = itemView.findViewById(R.id.img_off);
+last_msg = itemView.findViewById(R.id.last_msg);
+}
+}
+private void lastmessage(final String userid, final TextView last_msg){
+theLastMessage=&quot;default&quot;;
+final FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+DatabaseReference reference = FirebaseDatabase.getInstance().getReference(&quot;Chats&quot;);
+reference.addValueEventListener(new ValueEventListener() {
+@Override
+public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+for(DataSnapshot snapshot: dataSnapshot.getChildren()){
+Chat chat = snapshot.getValue(Chat.class);
+if((firebaseUser.getUid().equals(chat.getReceiver())&amp;&amp; userid.equals(chat.getSender())||
+(firebaseUser.getUid().equals(chat.getSender())) &amp;&amp; userid.equals(chat.getReceiver()))){
+theLastMessage = chat.getMessage();
+}
+}
+switch (theLastMessage){
+case &quot;default&quot;:
+last_msg.setText(&quot;No Message&quot;);
+break;
+default:
+last_msg.setText(theLastMessage);
+break;
+}
+theLastMessage =&quot;default&quot;;
+}
+@Override
+public void onCancelled(@NonNull DatabaseError databaseError) {
+}
+});
+
+}
+}
+❖ Manifest File
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;manifest xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+package=&quot;com.example.demochatapp&quot;&gt;
+&lt;uses-permission android:name=&quot;android.permission.INTERNET&quot; /&gt;
+&lt;uses-permission android:name=&quot;android.permission.WRITE_EXTERNAL_STORAGE&quot; /&gt;
+
+&lt;application
+android:allowBackup=&quot;true&quot;
+android:icon=&quot;@mipmap/ic_launcher&quot;
+android:label=&quot;@string/app_name&quot;
+android:roundIcon=&quot;@mipmap/ic_launcher_round&quot;
+android:supportsRtl=&quot;true&quot;
+android:theme=&quot;@style/AppTheme&quot;&gt;
+&lt;activity android:name=&quot;.MessageActivity&quot;&gt;&lt;/activity&gt;
+&lt;activity android:name=&quot;.ResetPasswordActivity&quot; /&gt;
+&lt;activity android:name=&quot;.RegisterActivity&quot; /&gt;
+&lt;activity android:name=&quot;.LoginActivity&quot; /&gt;
+&lt;activity android:name=&quot;.StartActivity&quot;&gt;
+&lt;intent-filter&gt;
+&lt;action android:name=&quot;android.intent.action.MAIN&quot; /&gt;
+&lt;category android:name=&quot;android.intent.category.LAUNCHER&quot; /&gt;
+&lt;/intent-filter&gt;
+&lt;/activity&gt;
+&lt;activity android:name=&quot;.MainActivity&quot;&gt;&lt;/activity&gt;
+&lt;/application&gt;
+&lt;/manifest&gt;
+
+❖ Adapter
+➢ MessageAdapter.java
+package com.example.demochatapp.Adapter;
+import android.content.Context;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
+import com.bumptech.glide.Glide;
+import com.example.demochatapp.Model.Chat;
+import com.example.demochatapp.R;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import java.util.List;
+public class MessageAdapter extends RecyclerView.Adapter&lt;MessageAdapter.ViewHolder&gt; {
+static final int MSG_TYPE_LEFT =0;
+static final int MSG_TYPE_RIGHT =1;
+Context mContext;
+List&lt;Chat&gt; mchat;
+String imageURL;
+FirebaseUser fuser;
+public MessageAdapter(Context mContext, List&lt;Chat&gt; mchat, String imageURL) {
+this.mContext = mContext;
+this.mchat = mchat;
+this.imageURL = imageURL;
+}
+
+@NonNull
+@Override
+public MessageAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+if(viewType ==MSG_TYPE_RIGHT){
+View view = LayoutInflater.from(mContext).inflate(R.layout.chat_item_right,parent,false);
+return new MessageAdapter.ViewHolder(view);
+}else{
+
+View view = LayoutInflater.from(mContext).inflate(R.layout.chat_item_left,parent,false);
+return new MessageAdapter.ViewHolder(view);
+}
+}
+@Override
+public void onBindViewHolder(@NonNull MessageAdapter.ViewHolder holder, int position) {
+Chat chat = mchat.get(position);
+holder.show_message.setText(chat.getMessage());
+if(imageURL.equals(&quot;default&quot;)){
+holder.profile_image.setImageResource(R.mipmap.ic_launcher);
+}else{
+Glide.with(mContext).load(imageURL).into(holder.profile_image);
+}
+if(position==mchat.size()-1){
+if(chat.isIsseen()){
+holder.txt_seen.setText(&quot;seen&quot;);
+}else{
+holder.txt_seen.setText(&quot;Delivered&quot;);
+}
+}else{
+holder.txt_seen.setVisibility(View.GONE);
+}
+}
+@Override
+public int getItemCount() {
+return mchat.size();
+}
+class ViewHolder extends RecyclerView.ViewHolder{
+TextView show_message;
+ImageView profile_image;
+TextView txt_seen;
+public ViewHolder(@NonNull View itemView) {
+super(itemView);
+show_message = itemView.findViewById(R.id.show_message);
+profile_image=itemView.findViewById(R.id.profile_image);
+txt_seen = itemView.findViewById(R.id.txt_seen);
+}
+}
+@Override
+public int getItemViewType(int position) {
+fuser = FirebaseAuth.getInstance().getCurrentUser();
+if(mchat.get(position).getSender().equals(fuser.getUid())) {
+return MSG_TYPE_RIGHT;
+}else{
+
+return MSG_TYPE_LEFT;
+}
+}
+}
+➢ UserAdapter.java
+package com.example.demochatapp.Adapter;
+
+import android.content.Context;
+import android.content.Intent;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
+import com.bumptech.glide.Glide;
+import com.example.demochatapp.MessageActivity;
+import com.example.demochatapp.Model.Chat;
+import com.example.demochatapp.Model.User;
+import com.example.demochatapp.R;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import java.util.List;
+public class UserAdapter extends RecyclerView.Adapter&lt;UserAdapter.ViewHolder&gt; {
+Context mContext;
+List&lt;User&gt; mUsers;
+boolean ischat;
+String theLastMessage;
+public UserAdapter(Context mContext, List&lt;User&gt; mUsers, boolean ischat) {
+this.mContext = mContext;
+this.mUsers = mUsers;
+this.ischat = ischat;
+}
+
+@NonNull
+@Override
+public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+View view = LayoutInflater.from(mContext).inflate(R.layout.user_item,parent,false);
+return new UserAdapter.ViewHolder(view);
+}
+@Override
+public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+final User user = mUsers.get(position);
+holder.username.setText(user.getUsername());
+if(&quot;default&quot;.equals(user.getImageURL())){
+holder.profile_image.setImageResource(R.mipmap.ic_launcher);
+}else{
+Glide.with(mContext).load(user.getImageURL()).into(holder.profile_image);
+}
+if(ischat){
+lastmessage(user.getId(),holder.last_msg);
+}else{
+holder.last_msg.setVisibility(View.GONE);
+}
+if(ischat){
+if(user.getStatus().equals(&quot;online&quot;)){
+holder.img_on.setVisibility(View.VISIBLE);
+holder.img_off.setVisibility(View.GONE);
+}
+else{
+holder.img_on.setVisibility(View.GONE);
+holder.img_off.setVisibility(View.VISIBLE);
+}
+}else{
+holder.img_on.setVisibility(View.GONE);
+holder.img_off.setVisibility(View.GONE);
+}
+holder.itemView.setOnClickListener(new View.OnClickListener() {
+@Override
+public void onClick(View view) {
+Intent intent = new Intent(mContext, MessageActivity.class);
+intent.putExtra(&quot;userid&quot;,user.getId());
+mContext.startActivity(intent);
+}
+});
+}
+@Override
+
+public int getItemCount() {
+return mUsers.size();
+}
+
+class ViewHolder extends RecyclerView.ViewHolder{
+public TextView username;
+public ImageView profile_image;
+private ImageView img_on;
+private ImageView img_off;
+private TextView last_msg;
+public ViewHolder(@NonNull View itemView) {
+super(itemView);
+username = itemView.findViewById(R.id.username);
+profile_image = itemView.findViewById(R.id.profile_image);
+img_on= itemView.findViewById(R.id.img_on);
+img_off = itemView.findViewById(R.id.img_off);
+last_msg = itemView.findViewById(R.id.last_msg);
+}
+}
+private void lastmessage(final String userid, final TextView last_msg){
+theLastMessage=&quot;default&quot;;
+final FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+DatabaseReference reference = FirebaseDatabase.getInstance().getReference(&quot;Chats&quot;);
+reference.addValueEventListener(new ValueEventListener() {
+@Override
+public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+for(DataSnapshot snapshot: dataSnapshot.getChildren()){
+Chat chat = snapshot.getValue(Chat.class);
+if((firebaseUser.getUid().equals(chat.getReceiver())&amp;&amp; userid.equals(chat.getSender())||
+(firebaseUser.getUid().equals(chat.getSender())) &amp;&amp; userid.equals(chat.getReceiver()))){
+theLastMessage = chat.getMessage();
+}
+}
+switch (theLastMessage){
+case &quot;default&quot;:
+last_msg.setText(&quot;No Message&quot;);
+Break;
+default:
+last_msg.setText(theLastMessage);
+break;
+}
+theLastMessage =&quot;default&quot;;
+}
+
+@Override
+public void onCancelled(@NonNull DatabaseError databaseError) {
+}
+});
+}
+}
+❖ Fragments
+➢ ChatsFragment
+package com.example.demochatapp.Fragments;
+import android.os.Bundle;
+import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import com.example.demochatapp.Adapter.UserAdapter;
+import com.example.demochatapp.Model.Chat;
+import com.example.demochatapp.Model.User;
+import com.example.demochatapp.R;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import java.util.ArrayList;
+import java.util.List;
+/**
+* A simple {@link Fragment} subclass.
+*/
+public class ChatsFragment extends Fragment {
+private RecyclerView recyclerView;
+private UserAdapter userAdapter;
+private List&lt;User&gt; mUsers;
+
+private List&lt;User&gt; display_chat;
+FirebaseUser fuser;
+DatabaseReference reference;
+private List&lt;String&gt; userslist;
+
+@Override
+public View onCreateView(LayoutInflater inflater, ViewGroup container,
+Bundle savedInstanceState) {
+// Inflate the layout for this fragment
+View view = inflater.inflate(R.layout.fragment_chats, container, false);
+recyclerView = view.findViewById(R.id.recycler_view);
+recyclerView.setHasFixedSize(true);
+recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+fuser = FirebaseAuth.getInstance().getCurrentUser();
+userslist = new ArrayList&lt;String&gt;();
+reference = FirebaseDatabase.getInstance().getReference(&quot;Chats&quot;);
+reference.addValueEventListener(new ValueEventListener() {
+@Override
+public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+userslist.clear();
+for(DataSnapshot snapshot: dataSnapshot.getChildren()){
+Chat chat = snapshot.getValue(Chat.class);
+if(fuser.getUid().equals(chat.getSender())){
+userslist.add(chat.getReceiver());
+}
+if(fuser.getUid().equals(chat.getReceiver())){
+userslist.add(chat.getSender());
+}
+}
+readChats();
+}
+@Override
+public void onCancelled(@NonNull DatabaseError databaseError) {
+}
+});
+return view;
+}
+private void readChats(){
+mUsers = new ArrayList&lt;&gt;();
+display_chat= new ArrayList&lt;&gt;();
+
+reference = FirebaseDatabase.getInstance().getReference(&quot;Users&quot;);
+reference.addValueEventListener(new ValueEventListener() {
+@Override
+public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+mUsers.clear();
+display_chat.clear();
+for(DataSnapshot snapshot: dataSnapshot.getChildren()){
+User user = snapshot.getValue(User.class);
+for(String name: userslist){
+if(name.equals(user.getId())){
+display_chat.add(user);
+break;
+}
+}
+}
+userAdapter = new UserAdapter(getContext(),display_chat,true);
+recyclerView.setAdapter(userAdapter);
+}
+@Override
+public void onCancelled(@NonNull DatabaseError databaseError) {
+}
+});
+}
+}
+➢ ProfileFragment
+package com.example.demochatapp.Fragments;
+import android.app.ProgressDialog;
+import android.content.ContentResolver;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Bundle;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.webkit.MimeTypeMap;
+import android.widget.TextView;
+
+import android.widget.Toast;
+import com.bumptech.glide.Glide;
+import com.example.demochatapp.Model.User;
+import com.example.demochatapp.R;
+import com.google.android.gms.tasks.Continuation;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.StorageTask;
+import com.google.firebase.storage.UploadTask;
+import java.util.HashMap;
+import de.hdodenhof.circleimageview.CircleImageView;
+import static android.app.Activity.RESULT_OK;
+/**
+* A simple {@link Fragment} subclass.
+*/
+public class ProfileFragment extends Fragment {
+CircleImageView image_profile;
+TextView username;
+DatabaseReference reference;
+FirebaseUser fuser;
+StorageReference storageReference;
+private static final int IMAGE_REQUEST = 1;
+private Uri imageUri;
+private StorageTask uploadTask;
+
+@Override
+public View onCreateView(LayoutInflater inflater, ViewGroup container,
+Bundle savedInstanceState) {
+// Inflate the layout for this fragment
+View view = inflater.inflate(R.layout.fragment_profile, container, false);
+image_profile = view.findViewById(R.id.profile_image);
+
+username = view.findViewById(R.id.username);
+storageReference = FirebaseStorage.getInstance().getReference(&quot;uploads&quot;);
+fuser = FirebaseAuth.getInstance().getCurrentUser();
+reference = FirebaseDatabase.getInstance().getReference(&quot;Users&quot;).child(fuser.getUid());
+reference.addValueEventListener(new ValueEventListener() {
+@Override
+public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+User user = dataSnapshot.getValue(User.class);
+username.setText(user.getUsername());
+if (&quot;default&quot;.equals(user.getImageURL())) {
+image_profile.setImageResource(R.mipmap.ic_launcher);
+} else {
+Glide.with(getContext()).load(user.getImageURL()).into(image_profile);
+}
+}
+@Override
+public void onCancelled(@NonNull DatabaseError databaseError) {
+}
+});
+image_profile.setOnClickListener(new View.OnClickListener() {
+@Override
+public void onClick(View view) {
+openImage(); //Method Call
+}
+});
+return view;
+}
+//Method Defn
+private void openImage() {
+Intent intent = new Intent();
+intent.setType(&quot;image/*&quot;);
+intent.setAction(Intent.ACTION_GET_CONTENT);
+startActivityForResult(intent, IMAGE_REQUEST);
+}
+String getFileExtension(Uri uri) {
+ContentResolver contentResolver = getContext().getContentResolver();
+MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
+return mimeTypeMap.getExtensionFromMimeType(contentResolver.getType(uri));
+}
+private void uploadImage() {
+final ProgressDialog pd = new ProgressDialog(getContext());
+pd.setMessage(&quot;Uploading&quot;);
+pd.show();
+
+if (imageUri != null) {
+final StorageReference fileReference = storageReference.child(System.currentTimeMillis()
++ &quot;.&quot; + getFileExtension(imageUri));
+uploadTask = fileReference.putFile(imageUri);
+uploadTask.continueWithTask(new Continuation&lt;UploadTask.TaskSnapshot, Task&lt;Uri&gt;&gt;() {
+@Override
+public Task&lt;Uri&gt; then(@NonNull Task&lt;UploadTask.TaskSnapshot&gt; task) throws Exception {
+if (!task.isSuccessful()) {
+throw task.getException();
+}
+return fileReference.getDownloadUrl();
+}
+}).addOnCompleteListener(new OnCompleteListener&lt;Uri&gt;() {
+@Override
+public void onComplete(@NonNull Task&lt;Uri&gt; task) {
+if (task.isSuccessful()) {
+Uri downloadUri = task.getResult();
+String mUri = downloadUri.toString();
+reference = FirebaseDatabase.getInstance().getReference(&quot;Users&quot;).child(fuser.getUid());
+HashMap&lt;String, Object&gt; map = new HashMap&lt;&gt;();
+map.put(&quot;imageURL&quot;, mUri);
+reference.updateChildren(map);
+pd.dismiss();
+} else {
+Toast.makeText(getContext(), &quot;Failed!&quot;, Toast.LENGTH_SHORT).show();
+pd.dismiss();
+}
+}
+}).addOnFailureListener(new OnFailureListener() {
+@Override
+public void onFailure(@NonNull Exception e) {
+Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+pd.dismiss();
+}
+});
+} else {
+Toast.makeText(getContext(), &quot;No image selected&quot;, Toast.LENGTH_SHORT).show();
+}
+}
+@Override
+public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+super.onActivityResult(requestCode, resultCode, data);
+if (requestCode == IMAGE_REQUEST &amp;&amp; resultCode == RESULT_OK &amp;&amp; data != null &amp;&amp;
+data.getData() != null) {
+imageUri = data.getData();
+
+if (uploadTask != null &amp;&amp; uploadTask.isInProgress()) {
+Toast.makeText(getContext(), &quot;Upload is in progress&quot;, Toast.LENGTH_LONG).show();
+} else {
+uploadImage();
+}
+}
+}
+}
+➢ UsersFragment
+package com.example.demochatapp.Fragments;
+import android.app.DownloadManager;
+import android.os.Bundle;
+import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.EditText;
+import com.example.demochatapp.Adapter.UserAdapter;
+import com.example.demochatapp.Model.User;
+import com.example.demochatapp.R;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
+import java.util.ArrayList;
+import java.util.List;
+import static java.security.AccessController.getContext;
+/**
+* A simple {@link Fragment} subclass.
+*/
+public class UsersFragment extends Fragment {
+
+private RecyclerView recyclerView;
+private UserAdapter userAdapter;
+private List&lt;User&gt; mUsers;
+EditText search_users;
+
+@Override
+public View onCreateView(LayoutInflater inflater, ViewGroup container,
+Bundle savedInstanceState) {
+// Inflate the layout for this fragment
+View view = inflater.inflate(R.layout.fragment_users, container, false);
+recyclerView = view.findViewById(R.id.recycler_view);
+recyclerView.setHasFixedSize(true);
+recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+mUsers = new ArrayList&lt;&gt;();
+readUsers();
+// searchUsers(&quot;&quot;);
+search_users = view.findViewById(R.id.search_users);
+search_users.addTextChangedListener(new TextWatcher() {
+@Override
+public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+}
+@Override
+public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+searchUsers(charSequence.toString().toLowerCase());
+}
+@Override
+public void afterTextChanged(Editable editable) {
+}
+});
+return view;
+}
+private void searchUsers(final String s){
+final FirebaseUser fuser = FirebaseAuth.getInstance().getCurrentUser();
+Query query =
+FirebaseDatabase.getInstance().getReference(&quot;Users&quot;).orderByChild(&quot;search&quot;).startAt(s).endAt(s+&quot;\uf8ff
+&quot;);
+query.addValueEventListener(new ValueEventListener() {
+@Override
+public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+mUsers.clear();
+for(DataSnapshot snapshot: dataSnapshot.getChildren()){
+User user = snapshot.getValue(User.class);
+assert user!=null;
+
+assert fuser !=null;
+if(fuser.getUid().equalsIgnoreCase(user.getId())){
+mUsers.add(user);
+}
+}
+userAdapter = new UserAdapter(getContext(),mUsers,false);
+recyclerView.setAdapter(userAdapter);
+}
+@Override
+public void onCancelled(@NonNull DatabaseError databaseError) {
+}
+});
+}
+private void readUsers(){
+final FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+DatabaseReference reference = FirebaseDatabase.getInstance().getReference(&quot;Users&quot;);
+reference.addValueEventListener(new ValueEventListener() {
+@Override
+public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+mUsers.clear();
+if(search_users.getText().toString().equals(&quot;&quot;)){
+for(DataSnapshot snapshot:dataSnapshot.getChildren()){
+User user = snapshot.getValue(User.class);
+assert user!=null;
+assert firebaseUser !=null;
+if(!firebaseUser.getUid().equalsIgnoreCase(user.getId())){
+mUsers.add(user);
+}
+}
+userAdapter = new UserAdapter(getContext(),mUsers,false);
+recyclerView.setAdapter(userAdapter);
+}
+}
+@Override
+public void onCancelled(@NonNull DatabaseError databaseError) {
+}
+});
+}
+}
+❖ Model
+➢ Chat.java
+
+package com.example.demochatapp.Model;
+import javax.xml.transform.sax.SAXResult;
+public class Chat {
+private String sender;
+private String receiver;
+private String message;
+private boolean isseen;
+public Chat(String sender, String receiver, String message, boolean isseen) {
+this.sender = sender;
+this.receiver = receiver;
+this.message = message;
+this.isseen = isseen;
+}
+Chat(){
+
+}
+public String getSender() {
+return sender;
+}
+public void setSender(String sender) {
+this.sender = sender;
+}
+public String getReceiver() {
+return receiver;
+}
+public void setReceiver(String receiver) {
+this.receiver = receiver;
+}
+public String getMessage() {
+return message;
+}
+public void setMessage(String message) {
+this.message = message;
+}
+public boolean isIsseen() {
+return isseen;
+}
+
+public void setIsseen(boolean isseen) {
+this.isseen = isseen;
+}
+}
+➢ Chatlist.java
+package com.example.demochatapp.Model;
+public class Chatlist {
+private String id;
+public Chatlist(String id) {
+this.id = id;
+}
+public Chatlist() {
+}
+public String getId() {
+return id;
+}
+public void setId(String id) {
+this.id = id;
+}
+}
+➢ User.java
+package com.example.demochatapp.Model;
+public class User {
+private String id;
+private String username;
+private String imageURL;
+private String status;
+private String search;
+public User(String id, String username, String imageURL, String status, String search) {
+this.id = id;
+this.username = username;
+this.imageURL = imageURL;
+this.status = status;
+this.search = search;
+}
+public User() {
+}
+
+public String getId() {
+return id;
+}
+public void setId(String id) {
+this.id = id;
+}
+public String getUsername() {
+return username;
+}
+public void setUsername(String username) {
+this.username = username;
+}
+public String getImageURL() {
+return imageURL;
+}
+public void setImageURL(String imageURL) {
+this.imageURL = imageURL;
+}
+public String getStatus() {
+return status;
+}
+public void setStatus(String status) {
+this.status = status;
+}
+public String getSearch() {
+return search;
+}
+public void setSearch(String search) {
+this.search = search;
+}
+}
+❖ StartActivity.java
+package com.example.demochatapp;
+import androidx.appcompat.app.AppCompatActivity;
+import android.content.Intent;
+
+import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+public class StartActivity extends AppCompatActivity {
+Button login,register;
+FirebaseUser firebaseUser;
+
+@Override
+protected void onStart() {
+super.onStart();
+FirebaseApp.initializeApp(this);
+firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+if(firebaseUser !=null){
+Intent intent = new Intent(StartActivity.this,MainActivity.class);
+startActivity(intent);
+finish();
+}
+}
+@Override
+protected void onCreate(Bundle savedInstanceState) {
+super.onCreate(savedInstanceState);
+setContentView(R.layout.activity_start);
+login = findViewById(R.id.login);
+register = findViewById(R.id.register);
+login.setOnClickListener(new View.OnClickListener() {
+@Override
+public void onClick(View view) {
+startActivity(new Intent(StartActivity.this,LoginActivity.class));
+}
+});
+register.setOnClickListener(new View.OnClickListener() {
+@Override
+public void onClick(View view) {
+startActivity(new Intent(StartActivity.this,RegisterActivity.class));
+}
+});
+}
+}
+❖ LoginActivity.java
+
+package com.example.demochatapp;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import android.content.Intent;
+import android.os.Bundle;
+import android.text.TextUtils;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
+import android.widget.Toast;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.rengwuxian.materialedittext.MaterialEditText;
+public class LoginActivity extends AppCompatActivity {
+MaterialEditText email, password;
+Button btn_login;
+FirebaseAuth auth;
+TextView forgot_password;
+@Override
+protected void onCreate(Bundle savedInstanceState) {
+super.onCreate(savedInstanceState);
+setContentView(R.layout.activity_login);
+Toolbar toolbar = findViewById(R.id.toolbar);
+setSupportActionBar(toolbar);
+getSupportActionBar().setTitle(&quot;Login&quot;);
+getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+auth = FirebaseAuth.getInstance();
+email = findViewById(R.id.email);
+password = findViewById(R.id.password);
+btn_login = findViewById(R.id.btn_login);
+forgot_password = findViewById(R.id.forgot_password);
+forgot_password.setOnClickListener(new View.OnClickListener() {
+@Override
+public void onClick(View view) {
+startActivity(new Intent(LoginActivity.this, ResetPasswordActivity.class));
+}
+});
+btn_login.setOnClickListener(new View.OnClickListener() {
+
+@Override
+public void onClick(View view) {
+String txt_email = email.getText().toString();
+String txt_password = password.getText().toString();
+if(TextUtils.isEmpty(txt_email)|| TextUtils.isEmpty(txt_password)){
+Toast.makeText(LoginActivity.this, &quot;All fields are required&quot;, Toast.LENGTH_SHORT).show();
+}
+else {
+auth.signInWithEmailAndPassword(txt_email,txt_password).addOnCompleteListener(new
+OnCompleteListener&lt;AuthResult&gt;() {
+@Override
+public void onComplete(@NonNull Task&lt;AuthResult&gt; task) {
+if(task.isSuccessful()){
+Intent intent= new Intent(LoginActivity.this,MainActivity.class);
+intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK |
+Intent.FLAG_ACTIVITY_NEW_TASK);
+startActivity(intent);
+finish();
+}
+}
+});
+}
+}
+});
+}
+}
+❖ RegisterActivity.java
+package com.example.demochatapp;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import android.content.Intent;
+import android.os.Bundle;
+import android.text.TextUtils;
+import android.view.View;
+import android.widget.Button;
+import android.widget.Toast;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+
+import com.google.firebase.database.FirebaseDatabase;
+import com.rengwuxian.materialedittext.MaterialEditText;
+import java.util.HashMap;
+public class RegisterActivity extends AppCompatActivity {
+MaterialEditText username,email,password;
+Button btn_register;
+FirebaseAuth auth;
+DatabaseReference reference;
+@Override
+protected void onCreate(Bundle savedInstanceState) {
+super.onCreate(savedInstanceState);
+setContentView(R.layout.activity_register);
+Toolbar toolbar = findViewById(R.id.toolbar);
+setSupportActionBar(toolbar);
+getSupportActionBar().setTitle(&quot;Register&quot;);
+getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+username = findViewById(R.id.username);
+email = findViewById(R.id.email);
+password = findViewById(R.id.password);
+btn_register = findViewById(R.id.btn_register);
+auth = FirebaseAuth.getInstance();
+btn_register.setOnClickListener(new View.OnClickListener() {
+@Override
+public void onClick(View view) {
+String txt_username = username.getText().toString();
+String txt_email = email.getText().toString();
+String txt_password = password.getText().toString();
+if(TextUtils.isEmpty(txt_username ) || TextUtils.isEmpty(txt_email) || TextUtils.isEmpty(txt_password))
+{
+Toast.makeText(RegisterActivity.this, &quot;All fields are required&quot;, Toast.LENGTH_SHORT).show();
+}else if ( txt_password.length() &lt; 6){
+Toast.makeText(RegisterActivity.this, &quot;Password must be atleast 6 characters&quot;,
+Toast.LENGTH_SHORT).show();
+}else{
+register(txt_username,txt_email,txt_password);
+}
+}
+});
+
+}
+//add users to database
+
+public void register(final String username, String email, String password){
+auth.createUserWithEmailAndPassword(email,password)
+.addOnCompleteListener(
+new OnCompleteListener&lt;AuthResult&gt;() {
+@Override
+public void onComplete(@NonNull Task&lt;AuthResult&gt; task) {
+if(task.isSuccessful()){
+FirebaseUser firebaseUser = auth.getCurrentUser();
+String userid =firebaseUser.getUid();
+reference = FirebaseDatabase.getInstance().getReference(&quot;Users&quot;).child(userid);
+HashMap&lt;String,String&gt; hashMap = new HashMap&lt;&gt;();
+hashMap.put(&quot;id&quot;,userid);
+hashMap.put(&quot;username&quot;,username);
+hashMap.put(&quot;imageURL&quot;,&quot;default&quot;);
+hashMap.put(&quot;status&quot;,&quot;offline&quot;);
+hashMap.put(&quot;search&quot;,username.toLowerCase());
+reference.setValue(hashMap).addOnCompleteListener(new OnCompleteListener&lt;Void&gt;() {
+@Override
+public void onComplete(@NonNull Task&lt;Void&gt; task) {
+if (task.isSuccessful()) {
+Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
+intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK |
+Intent.FLAG_ACTIVITY_NEW_TASK);
+startActivity(intent);
+finish();
+}
+}
+});
+
+}
+else{
+Toast.makeText(RegisterActivity.this,&quot;You can&#39;t have this email or password for
+registration&quot;,Toast.LENGTH_LONG).show();
+}
+}
+}
+);
+}
+}
+❖ ResetPasswordActivity.java
+
+package com.example.demochatapp;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.Toast;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
+import com.rengwuxian.materialedittext.MaterialEditText;
+public class ResetPasswordActivity extends AppCompatActivity {
+MaterialEditText send_email;
+Button btn_reset;
+FirebaseAuth firebaseAuth;
+@Override
+protected void onCreate(Bundle savedInstanceState) {
+super.onCreate(savedInstanceState);
+setContentView(R.layout.activity_reset_password);
+Toolbar toolbar = findViewById(R.id.toolbar);
+setSupportActionBar(toolbar);
+getSupportActionBar().setTitle(&quot;Reset Password&quot;);
+getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+send_email = findViewById(R.id.send_email);
+btn_reset = findViewById(R.id.btn_reset);
+firebaseAuth = FirebaseAuth.getInstance();
+btn_reset.setOnClickListener(new View.OnClickListener() {
+@Override
+public void onClick(View view) {
+String email = send_email.getText().toString();
+if (email.equals(&quot;&quot;)) {
+Toast.makeText(ResetPasswordActivity.this, &quot;All fields are required&quot;,
+Toast.LENGTH_SHORT).show();
+} else {
+firebaseAuth.sendPasswordResetEmail(email).addOnCompleteListener(new
+OnCompleteListener&lt;Void&gt;() {
+@Override
+public void onComplete(@NonNull Task&lt;Void&gt; task) {
+if (task.isSuccessful()) {
+Toast.makeText(ResetPasswordActivity.this, &quot;Please check your email&quot;,
+Toast.LENGTH_SHORT).show();
+
+startActivity(new Intent(ResetPasswordActivity.this, LoginActivity.class));
+} else {
+String error = task.getException().getMessage();
+Toast.makeText(ResetPasswordActivity.this, error, Toast.LENGTH_SHORT).show();
+}
+}
+});
+}
+}
+});
+}
+}
+
+❖ MessageActivity.java
+package com.example.demochatapp;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.TextView;
+import android.widget.Toast;
+import com.bumptech.glide.Glide;
+import com.example.demochatapp.Adapter.MessageAdapter;
+import com.example.demochatapp.Model.Chat;
+import com.example.demochatapp.Model.User;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import java.util.ArrayList;
+import java.util.HashMap;
+
+import java.util.List;
+import de.hdodenhof.circleimageview.CircleImageView;
+public class MessageActivity extends AppCompatActivity {
+CircleImageView profile_image;
+TextView username;
+FirebaseUser fuser;
+DatabaseReference reference;
+ImageButton btn_send;
+EditText text_send;
+String userid;
+MessageAdapter messageAdapter;
+List&lt;Chat&gt; mChat;
+RecyclerView recyclerView;
+Intent intent;
+ValueEventListener seenListener;
+@Override
+protected void onCreate(Bundle savedInstanceState) {
+super.onCreate(savedInstanceState);
+setContentView(R.layout.activity_message);
+Toolbar toolbar = findViewById(R.id.toolbar);
+setSupportActionBar(toolbar);
+getSupportActionBar().setTitle(&quot;&quot;);
+toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+@Override
+public void onClick(View view) {
+startActivity(new Intent(MessageActivity.this,
+MainActivity.class).setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+}
+});
+recyclerView = findViewById(R.id.recycler_view);
+recyclerView.setHasFixedSize(true);
+LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getApplicationContext());
+linearLayoutManager.setStackFromEnd(true);
+recyclerView.setLayoutManager(linearLayoutManager);
+profile_image = findViewById(R.id.profile_image);
+username = findViewById(R.id.username);
+btn_send = findViewById(R.id.btn_send);
+text_send = findViewById(R.id.text_send);
+intent = getIntent();
+
+userid = intent.getStringExtra(&quot;userid&quot;);
+btn_send.setOnClickListener(new View.OnClickListener() {
+@Override
+public void onClick(View view) {
+String msg = text_send.getText().toString();
+if(!msg.equals(&quot;&quot;)){
+sendMessage(fuser.getUid(),userid,msg);
+}else{
+Toast.makeText(getApplicationContext(),&quot;You can&#39;t send empty
+message&quot;,Toast.LENGTH_LONG).show();
+}
+text_send.setText(&quot;&quot;);
+}
+});
+fuser = FirebaseAuth.getInstance().getCurrentUser();
+reference = FirebaseDatabase.getInstance().getReference(&quot;Users&quot;).child(userid);
+reference.addValueEventListener(new ValueEventListener() {
+@Override
+public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+User user = dataSnapshot.getValue(User.class);
+username.setText(user.getUsername());
+if(&quot;default&quot;.equals(user.getImageURL())){
+profile_image.setImageResource(R.mipmap.ic_launcher);
+}else{
+Glide.with(getApplicationContext()).load(user.getImageURL()).into(profile_image);
+}
+readMessages(fuser.getUid(),userid,user.getImageURL());
+}
+@Override
+public void onCancelled(@NonNull DatabaseError databaseError) {
+}
+});
+seenMessage(userid);
+}
+private void seenMessage(final String userid){
+reference = FirebaseDatabase.getInstance().getReference(&quot;Chats&quot;);
+seenListener = reference.addValueEventListener(new ValueEventListener() {
+@Override
+public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+for(DataSnapshot snapshot: dataSnapshot.getChildren()){
+Chat chat = snapshot.getValue(Chat.class);
+if(chat.getReceiver().equals(fuser.getUid())&amp;&amp;chat.getSender().equals(userid)){
+HashMap&lt;String,Object&gt; hashMap = new HashMap&lt;&gt;();
+hashMap.put(&quot;isseen&quot;,true);
+snapshot.getRef().updateChildren(hashMap);
+}
+
+}
+}
+@Override
+public void onCancelled(@NonNull DatabaseError databaseError) {
+}
+});
+}
+private void sendMessage(String sender,String receiver,String message){
+DatabaseReference reference = FirebaseDatabase.getInstance().getReference();
+HashMap&lt;String,Object&gt; hashMap = new HashMap&lt;&gt;();
+hashMap.put(&quot;sender&quot;,sender);
+hashMap.put(&quot;receiver&quot;,receiver);
+hashMap.put(&quot;message&quot;,message);
+hashMap.put(&quot;isseen&quot;,false);
+reference.child(&quot;Chats&quot;).push().setValue(hashMap);
+final DatabaseReference chatRef =
+FirebaseDatabase.getInstance().getReference(&quot;Chatlist&quot;).child(fuser.getUid()).child(userid);
+chatRef.addListenerForSingleValueEvent(new ValueEventListener() {
+@Override
+public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+if(!dataSnapshot.exists()){
+chatRef.child(&quot;id&quot;).setValue(userid);
+}
+}
+@Override
+public void onCancelled(@NonNull DatabaseError databaseError) {
+}
+});
+}
+private void readMessages(final String myid, final String userid, final String imageurl){
+mChat = new ArrayList&lt;&gt;();
+reference = FirebaseDatabase.getInstance().getReference(&quot;Chats&quot;);
+reference.addValueEventListener(new ValueEventListener() {
+@Override
+public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+mChat.clear();
+for(DataSnapshot snapshot: dataSnapshot.getChildren()){
+Chat chat = snapshot.getValue(Chat.class);
+if(chat.getReceiver().equals(myid)&amp;&amp; chat.getSender().equals(userid)||
+chat.getReceiver().equals(userid)&amp;&amp; chat.getSender().equals(myid)){
+mChat.add(chat);
+}
+messageAdapter = new MessageAdapter(MessageActivity.this,mChat,imageurl);
+
+recyclerView.setAdapter(messageAdapter);
+}
+}
+@Override
+public void onCancelled(@NonNull DatabaseError databaseError) {
+}
+});
+}
+
+private void status(String status){
+reference = FirebaseDatabase.getInstance().getReference(&quot;Users&quot;).child(fuser.getUid());
+HashMap&lt;String, Object&gt; hashMap = new HashMap&lt;&gt;();
+hashMap.put(&quot;status&quot;,status);
+reference.updateChildren(hashMap);
+}
+@Override
+protected void onResume(){
+super.onResume();
+status(&quot;online&quot;);
+}
+@Override
+protected void onPause(){
+super.onPause();
+status(&quot;offline&quot;);
+}
+}
+❖ MainActivity.java
+package com.example.demochatapp;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentPagerAdapter;
+import androidx.viewpager.widget.ViewPager;
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
+
+import android.widget.TextView;
+import com.bumptech.glide.Glide;
+import com.example.demochatapp.Fragments.ChatsFragment;
+import com.example.demochatapp.Fragments.ProfileFragment;
+import com.example.demochatapp.Fragments.UsersFragment;
+import com.example.demochatapp.Model.Chat;
+import com.example.demochatapp.Model.User;
+import com.google.android.material.tabs.TabLayout;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import java.util.ArrayList;
+import java.util.HashMap;
+import de.hdodenhof.circleimageview.CircleImageView;
+public class MainActivity extends AppCompatActivity {
+CircleImageView profile_image;
+TextView username;
+FirebaseUser firebaseUser;
+DatabaseReference reference;
+@Override
+protected void onCreate(Bundle savedInstanceState) {
+super.onCreate(savedInstanceState);
+setContentView(R.layout.activity_main);
+Toolbar toolbar = findViewById(R.id.toolbar);
+setSupportActionBar(toolbar);
+getSupportActionBar().setTitle(&quot;&quot;);
+getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+profile_image = findViewById(R.id.profile_image);
+username = findViewById(R.id.username);
+firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+reference = FirebaseDatabase.getInstance().getReference(&quot;Users&quot;)
+.child(firebaseUser.getUid());
+reference.addValueEventListener(new ValueEventListener() {
+@Override
+public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+User user = dataSnapshot.getValue(User.class);
+username.setText(user.getUsername());
+if (&quot;default&quot;.equals(user.getImageURL())) {
+profile_image.setImageResource(R.mipmap.ic_launcher);
+
+} else {
+Glide.with(getApplicationContext()).load(user.getImageURL()).into(profile_image);
+}
+}
+@Override
+public void onCancelled(@NonNull DatabaseError databaseError) {
+}
+});
+final TabLayout tabLayout = findViewById(R.id.tab_layout);
+final ViewPager viewPager = findViewById(R.id.view_pager);
+reference = FirebaseDatabase.getInstance().getReference(&quot;Chats&quot;);
+reference.addValueEventListener(new ValueEventListener() {
+@Override
+public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+ViewPagerAdapter viewPagerAdapter = new ViewPagerAdapter(getSupportFragmentManager());
+int unread=0;
+for(DataSnapshot snapshot:dataSnapshot.getChildren()){
+Chat chat = snapshot.getValue(Chat.class);
+if(chat.getReceiver().equals(firebaseUser.getUid())&amp;&amp; !chat.isIsseen()){
+unread++;
+}
+}
+if(unread==0){
+viewPagerAdapter.addFragment(new ChatsFragment(),&quot;Chats&quot;);
+}else{
+viewPagerAdapter.addFragment(new ChatsFragment(),&quot;(&quot;+unread+&quot;)&quot; +&quot;Chats&quot;);
+}
+viewPagerAdapter.addFragment(new UsersFragment(), &quot;Users&quot;);
+viewPagerAdapter.addFragment(new ProfileFragment(), &quot;Profile&quot;);
+viewPager.setAdapter(viewPagerAdapter);
+tabLayout.setupWithViewPager(viewPager);
+}
+@Override
+public void onCancelled(@NonNull DatabaseError databaseError) {
+}
+});
+}
+@Override
+public boolean onCreateOptionsMenu(Menu menu) {
+getMenuInflater().inflate(R.menu.menu,menu);
+
+return true;
+}
+@Override
+public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+switch (item.getItemId()){
+case R.id.logout:
+FirebaseAuth.getInstance().signOut();
+startActivity(new
+Intent(MainActivity.this,StartActivity.class).setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+finish();
+return true;
+}
+return false;
+}
+class ViewPagerAdapter extends FragmentPagerAdapter{
+private ArrayList&lt;Fragment&gt; fragments;
+private ArrayList&lt;String&gt; titles;
+public ViewPagerAdapter(@NonNull FragmentManager fm) {
+super(fm);
+this.fragments= new ArrayList&lt;&gt;();
+this.titles= new ArrayList&lt;&gt;();
+}
+
+@NonNull
+@Override
+public Fragment getItem(int position) {
+return fragments.get(position);
+}
+@Override
+public int getCount() {
+return fragments.size();
+}
+public void addFragment(Fragment fragment,String title){
+fragments.add(fragment);
+titles.add(title);
+}
+@Nullable
+@Override
+public CharSequence getPageTitle(int position) {
+return titles.get(position);
+
+}
+}
+private void status(String status){
+reference = FirebaseDatabase.getInstance().getReference(&quot;Users&quot;).child(firebaseUser.getUid());
+HashMap&lt;String,Object&gt; hashMap = new HashMap&lt;&gt;();
+hashMap.put(&quot;status&quot;,status);
+reference.updateChildren(hashMap);
+}
+@Override
+protected void onResume(){
+super.onResume();
+status(&quot;online&quot;);
+}
+@Override
+protected void onPause(){
+super.onPause();
+status(&quot;offline&quot;);
+}
+}
+❖ Drawable
+➢ Background_left.xml
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;shape xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+android:shape=&quot;rectangle&quot;&gt;
+&lt;corners
+android:radius=&quot;10dp&quot;
+android:topLeftRadius=&quot;0dp&quot; /&gt;
+&lt;solid android:color=&quot;@android:color/white&quot;/&gt;
+&lt;/shape&gt;
+➢ Background_right.xml
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;shape xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+android:shape=&quot;rectangle&quot;&gt;
+&lt;corners
+android:radius=&quot;10dp&quot;
+android:topRightRadius=&quot;0dp&quot; /&gt;
+&lt;solid android:color=&quot;@color/colorPrimary&quot;/&gt;
+&lt;/shape&gt;
+➢ ic_action_name.xml
+&lt;vector xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+android:width=&quot;24dp&quot;
+
+android:height=&quot;24dp&quot;
+android:viewportWidth=&quot;24&quot;
+android:viewportHeight=&quot;24&quot;
+android:tint=&quot;#65A3FF&quot;&gt;
+&lt;path
+android:fillColor=&quot;#FF000000&quot;
+android:pathData=&quot;M2.01,21L23,12 2.01,3 2,10l15,2 -15,2z&quot;/&gt;
+&lt;/vector&gt;
+❖ menu.xml
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;menu xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+xmlns:app=&quot;http://schemas.android.com/apk/res-auto&quot;&gt;
+&lt;item
+android:id=&quot;@+id/logout&quot;
+android:title=&quot;Logout&quot;
+app:showAsAction=&quot;never&quot;/&gt;
+&lt;/menu&gt;
+❖ styles.xml
+&lt;resources&gt;
+&lt;!-- Base application theme. --&gt;
+&lt;style name=&quot;AppTheme&quot; parent=&quot;Theme.AppCompat.Light.NoActionBar&quot;&gt;
+&lt;!-- Customize your theme here. --&gt;
+&lt;item name=&quot;colorPrimary&quot;&gt;@color/colorPrimary&lt;/item&gt;
+&lt;item name=&quot;colorPrimaryDark&quot;&gt;@color/colorPrimaryDark&lt;/item&gt;
+&lt;item name=&quot;colorAccent&quot;&gt;@color/colorAccent&lt;/item&gt;
+&lt;/style&gt;
+&lt;style name=&quot;MenuuStyle&quot; parent=&quot;Theme.AppCompat.Light&quot;&gt;
+&lt;item name=&quot;android:background&quot;&gt;@android:color/white&lt;/item&gt;
+&lt;/style&gt;
+&lt;/resources&gt;
+❖ colors.xml
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;resources&gt;
+&lt;color name=&quot;colorPrimary&quot;&gt;#65A3FF&lt;/color&gt;
+&lt;color name=&quot;colorPrimaryDark&quot;&gt;#65A3FF&lt;/color&gt;
+&lt;color name=&quot;colorAccent&quot;&gt;#65A3FF&lt;/color&gt;
+&lt;/resources&gt;
+
+❖ Layouts
+➢ bar_layout.xml
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;androidx.appcompat.widget.Toolbar xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+xmlns:app=&quot;http://schemas.android.com/apk/res-auto&quot;
+xmlns:tools=&quot;http://schemas.android.com/tools&quot;
+android:orientation=&quot;vertical&quot;
+android:id=&quot;@+id/toolbar&quot;
+android:background=&quot;@color/colorPrimary&quot;
+android:theme=&quot;@style/ThemeOverlay.AppCompat.Dark.ActionBar&quot;
+app:popupTheme=&quot;@style/MenuuStyle&quot;
+tools:ignore=&quot;InvalidId&quot;&gt;
+&lt;/androidx.appcompat.widget.Toolbar&gt;
+➢ activity_start.xml
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;RelativeLayout xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+xmlns:app=&quot;http://schemas.android.com/apk/res-auto&quot;
+xmlns:tools=&quot;http://schemas.android.com/tools&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;match_parent&quot;
+android:gravity=&quot;center&quot;
+android:background=&quot;#FFFFFF&quot;
+tools:context=&quot;.StartActivity&quot;&gt;
+&lt;TextView
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:text=&quot;Chat App&quot;
+android:gravity=&quot;center&quot;
+android:textColor=&quot;@color/colorPrimary&quot;
+android:textSize=&quot;25sp&quot;
+android:layout_marginBottom=&quot;24dp&quot;
+android:id=&quot;@+id/tv&quot;
+android:textStyle=&quot;bold&quot;/&gt;
+&lt;Button
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+
+android:id=&quot;@+id/login&quot;
+android:layout_marginTop=&quot;24dp&quot;
+android:textColor=&quot;#FFFFFF&quot;
+android:layout_marginBottom=&quot;24dp&quot;
+android:layout_below=&quot;@+id/tv&quot;
+android:text=&quot;Login&quot;
+android:textStyle=&quot;bold&quot;
+android:background=&quot;@color/colorPrimary&quot;/&gt;
+&lt;Button
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:id=&quot;@+id/register&quot;
+android:layout_marginTop=&quot;24dp&quot;
+android:textColor=&quot;#FFFFFF&quot;
+android:layout_below=&quot;@+id/login&quot;
+android:text=&quot;Register&quot;
+android:textStyle=&quot;bold&quot;
+android:background=&quot;@color/colorPrimary&quot;/&gt;
+&lt;/RelativeLayout&gt;
+➢ activity_login.xml
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;RelativeLayout
+xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+xmlns:app=&quot;http://schemas.android.com/apk/res-auto&quot;
+xmlns:tools=&quot;http://schemas.android.com/tools&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;match_parent&quot;
+tools:context=&quot;.LoginActivity&quot;&gt;
+&lt;include
+android:id=&quot;@+id/toolbar&quot;
+layout=&quot;@layout/bar_layout&quot;
+tools:ignore=&quot;InvalidId&quot;
+/&gt;
+&lt;LinearLayout
+android:orientation=&quot;vertical&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:gravity=&quot;center_horizontal&quot;
+android:padding=&quot;16dp&quot;
+android:layout_below=&quot;@id/toolbar&quot;&gt;
+&lt;TextView
+android:layout_width=&quot;match_parent&quot;
+
+android:layout_height=&quot;wrap_content&quot;
+android:text=&quot;Login&quot;
+android:gravity=&quot;center&quot;
+android:textSize=&quot;25sp&quot;
+android:textStyle=&quot;bold&quot;
+/&gt;
+&lt;com.rengwuxian.materialedittext.MaterialEditText
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:id=&quot;@+id/email&quot;
+android:inputType=&quot;textEmailAddress&quot;
+android:layout_marginTop=&quot;10dp&quot;
+app:met_floatingLabel=&quot;normal&quot;
+android:hint=&quot;Email&quot;/&gt;
+&lt;com.rengwuxian.materialedittext.MaterialEditText
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:id=&quot;@+id/password&quot;
+android:inputType=&quot;textPassword&quot;
+android:layout_marginTop=&quot;10dp&quot;
+app:met_floatingLabel=&quot;normal&quot;
+android:hint=&quot;Password&quot;/&gt;
+&lt;Button
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:gravity=&quot;center&quot;
+android:text=&quot;Login&quot;
+android:layout_marginTop=&quot;10dp&quot;
+android:id=&quot;@+id/btn_login&quot;
+android:background=&quot;@color/colorPrimary&quot;
+android:textColor=&quot;#FFFFFF&quot;
+android:textStyle=&quot;bold&quot;
+/&gt;
+&lt;TextView
+android:id=&quot;@+id/forgot_password&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:text=&quot;Forgot your password ?&quot;
+android:gravity=&quot;end&quot;
+android:layout_gravity=&quot;end&quot;
+android:textColor=&quot;@color/colorPrimary&quot;
+android:layout_marginTop=&quot;10dp&quot;
+android:textSize=&quot;18sp&quot;
+android:textStyle=&quot;bold&quot;
+/&gt;
+
+&lt;/LinearLayout&gt;
+&lt;/RelativeLayout&gt;
+➢ activity_register.xml
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;RelativeLayout xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+xmlns:app=&quot;http://schemas.android.com/apk/res-auto&quot;
+xmlns:tools=&quot;http://schemas.android.com/tools&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;match_parent&quot;
+tools:context=&quot;.RegisterActivity&quot;&gt;
+&lt;include
+android:id=&quot;@+id/toolbar&quot;
+layout=&quot;@layout/bar_layout&quot;
+tools:ignore=&quot;InvalidId&quot; /&gt;
+&lt;LinearLayout
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:layout_below=&quot;@id/toolbar&quot;
+android:gravity=&quot;center_horizontal&quot;
+android:orientation=&quot;vertical&quot;
+android:padding=&quot;16dp&quot;&gt;
+&lt;TextView
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:gravity=&quot;center&quot;
+android:text=&quot;Create a New Account&quot;
+android:textSize=&quot;25sp&quot;
+android:textStyle=&quot;bold&quot; /&gt;
+&lt;com.rengwuxian.materialedittext.MaterialEditText
+android:id=&quot;@+id/username&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:layout_marginTop=&quot;10dp&quot;
+android:hint=&quot;Username&quot;
+android:inputType=&quot;text&quot;
+app:met_floatingLabel=&quot;normal&quot; /&gt;
+&lt;com.rengwuxian.materialedittext.MaterialEditText
+android:id=&quot;@+id/email&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:layout_marginTop=&quot;10dp&quot;
+android:hint=&quot;Email&quot;
+
+android:inputType=&quot;textEmailAddress&quot;
+app:met_floatingLabel=&quot;normal&quot; /&gt;
+&lt;com.rengwuxian.materialedittext.MaterialEditText
+android:id=&quot;@+id/password&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:layout_marginTop=&quot;10dp&quot;
+android:hint=&quot;Password&quot;
+android:inputType=&quot;textPassword&quot;
+app:met_floatingLabel=&quot;normal&quot; /&gt;
+&lt;Button
+android:id=&quot;@+id/btn_register&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:layout_marginTop=&quot;10dp&quot;
+android:background=&quot;@color/colorPrimary&quot;
+android:gravity=&quot;center&quot;
+android:text=&quot;Register&quot;
+android:textColor=&quot;#FFFFFF&quot;
+android:textStyle=&quot;bold&quot; /&gt;
+&lt;/LinearLayout&gt;
+&lt;/RelativeLayout&gt;
+➢ activity_reset_password.xml
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;RelativeLayout xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+xmlns:app=&quot;http://schemas.android.com/apk/res-auto&quot;
+xmlns:tools=&quot;http://schemas.android.com/tools&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;match_parent&quot;
+tools:context=&quot;.ResetPasswordActivity&quot;&gt;
+&lt;include
+android:id=&quot;@+id/toolbar&quot;
+layout=&quot;@layout/bar_layout&quot;
+tools:ignore=&quot;InvalidId&quot;
+/&gt;
+&lt;LinearLayout
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:orientation=&quot;vertical&quot;
+android:layout_below=&quot;@id/toolbar&quot;
+android:padding=&quot;16dp&quot;&gt;
+&lt;com.rengwuxian.materialedittext.MaterialEditText
+android:layout_width=&quot;match_parent&quot;
+
+android:layout_height=&quot;wrap_content&quot;
+android:id=&quot;@+id/send_email&quot;
+android:inputType=&quot;textEmailAddress&quot;
+app:met_floatingLabel=&quot;normal&quot;
+android:hint=&quot;Your email&quot;
+android:layout_marginTop=&quot;20dp&quot;/&gt;
+&lt;Button
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:text=&quot;Reset&quot;
+android:id=&quot;@+id/btn_reset&quot;
+android:textColor=&quot;#fff&quot;
+android:background=&quot;@color/colorPrimary&quot;
+android:layout_marginTop=&quot;10dp&quot;/&gt;
+&lt;TextView
+android:layout_width=&quot;wrap_content&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:gravity=&quot;center&quot;
+android:layout_marginTop=&quot;15dp&quot;
+android:textColor=&quot;#000&quot;
+android:textSize=&quot;14sp&quot;
+android:text=&quot;By clicking this button, you will receive an email to reset your password&quot;/&gt;
+&lt;/LinearLayout&gt;
+
+&lt;/RelativeLayout&gt;
+➢ activity_message.xml
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;RelativeLayout xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+xmlns:app=&quot;http://schemas.android.com/apk/res-auto&quot;
+xmlns:tools=&quot;http://schemas.android.com/tools&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;match_parent&quot;
+android:background=&quot;#E6E6E6&quot;
+tools:context=&quot;.MessageActivity&quot;&gt;
+
+&lt;com.google.android.material.appbar.AppBarLayout
+android:id=&quot;@+id/bar_layout&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;&gt;
+&lt;androidx.appcompat.widget.Toolbar
+android:id=&quot;@+id/toolbar&quot;
+
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:background=&quot;@color/colorPrimary&quot;
+android:theme=&quot;@style/ThemeOverlay.AppCompat.Dark.ActionBar&quot;
+app:popupTheme=&quot;@style/MenuuStyle&quot;
+&gt;
+&lt;de.hdodenhof.circleimageview.CircleImageView
+android:layout_width=&quot;30dp&quot;
+android:layout_height=&quot;30dp&quot;
+android:id=&quot;@+id/profile_image&quot;/&gt;
+&lt;TextView
+android:layout_width=&quot;wrap_content&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:id=&quot;@+id/username&quot;
+android:text=&quot;Username&quot;
+android:textColor=&quot;#ffff&quot;
+android:textStyle=&quot;bold&quot;
+android:layout_marginStart=&quot;25dp&quot;/&gt;
+
+&lt;/androidx.appcompat.widget.Toolbar&gt;
+&lt;/com.google.android.material.appbar.AppBarLayout&gt;
+&lt;androidx.recyclerview.widget.RecyclerView
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;match_parent&quot;
+android:id=&quot;@+id/recycler_view&quot;
+android:layout_below=&quot;@id/bar_layout&quot;
+android:layout_above=&quot;@id/bottom&quot;&gt;
+&lt;/androidx.recyclerview.widget.RecyclerView&gt;
+&lt;RelativeLayout
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:padding=&quot;5dp&quot;
+android:background=&quot;#fff&quot;
+android:id=&quot;@+id/bottom&quot;
+android:layout_alignParentBottom=&quot;true&quot;&gt;
+&lt;EditText
+android:id=&quot;@+id/text_send&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:layout_toStartOf=&quot;@id/btn_send&quot;
+android:layout_centerVertical=&quot;true&quot;
+android:hint=&quot;Type a message here&quot;
+android:background=&quot;@android:color/transparent&quot;
+/&gt;
+&lt;ImageButton
+android:id=&quot;@+id/btn_send&quot;
+
+android:layout_width=&quot;40dp&quot;
+android:layout_height=&quot;40dp&quot;
+android:background=&quot;@drawable/ic_action_name&quot;
+android:layout_alignParentEnd=&quot;true&quot;/&gt;
+&lt;/RelativeLayout&gt;
+
+&lt;/RelativeLayout&gt;
+➢ activity_main.xml
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;androidx.coordinatorlayout.widget.CoordinatorLayout
+xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+xmlns:app=&quot;http://schemas.android.com/apk/res-auto&quot;
+xmlns:tools=&quot;http://schemas.android.com/tools&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;match_parent&quot;
+tools:context=&quot;.MainActivity&quot;&gt;
+&lt;com.google.android.material.appbar.AppBarLayout
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;&gt;
+&lt;androidx.appcompat.widget.Toolbar
+android:id=&quot;@+id/toolbar&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:background=&quot;@color/colorPrimary&quot;
+android:theme=&quot;@style/ThemeOverlay.AppCompat.Dark.ActionBar&quot;
+app:popupTheme=&quot;@style/MenuuStyle&quot;&gt;
+&lt;de.hdodenhof.circleimageview.CircleImageView
+android:id=&quot;@+id/profile_image&quot;
+android:layout_width=&quot;30dp&quot;
+android:layout_height=&quot;30dp&quot;&gt;
+&lt;/de.hdodenhof.circleimageview.CircleImageView&gt;
+&lt;TextView
+android:id=&quot;@+id/username&quot;
+android:layout_width=&quot;wrap_content&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:layout_marginStart=&quot;25dp&quot;
+android:layout_marginLeft=&quot;25dp&quot;
+android:text=&quot;Username&quot;
+android:textColor=&quot;#ffff&quot;
+android:textStyle=&quot;bold&quot; /&gt;
+
+&lt;/androidx.appcompat.widget.Toolbar&gt;
+&lt;com.google.android.material.tabs.TabLayout
+android:id=&quot;@+id/tab_layout&quot;
+IndicatorColor=&quot;#FFFFFF&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:background=&quot;@color/colorPrimary&quot;
+app:tabSelectedTextColor=&quot;#FFFFFF&quot;
+app:tabTextColor=&quot;#FFFFFF&quot; /&gt;
+&lt;/com.google.android.material.appbar.AppBarLayout&gt;
+&lt;androidx.viewpager.widget.ViewPager
+android:id=&quot;@+id/view_pager&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;match_parent&quot;
+app:layout_behavior=&quot;com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior&quot;/
+&gt;
+&lt;/androidx.coordinatorlayout.widget.CoordinatorLayout&gt;
+➢ user_item.xml
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;RelativeLayout xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+xmlns:app=&quot;http://schemas.android.com/apk/res-auto&quot;
+android:padding=&quot;10dp&quot;&gt;
+&lt;de.hdodenhof.circleimageview.CircleImageView
+android:layout_width=&quot;50dp&quot;
+android:layout_height=&quot;50dp&quot;
+android:src=&quot;@mipmap/ic_launcher&quot;
+android:id=&quot;@+id/profile_image&quot;/&gt;
+&lt;TextView
+android:layout_width=&quot;wrap_content&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:text=&quot;Username&quot;
+android:layout_toEndOf=&quot;@id/profile_image&quot;
+android:layout_marginStart=&quot;10dp&quot;
+android:layout_centerVertical=&quot;true&quot;
+android:textSize=&quot;18sp&quot;
+android:id=&quot;@+id/username&quot;/&gt;
+&lt;de.hdodenhof.circleimageview.CircleImageView
+android:layout_width=&quot;15dp&quot;
+android:layout_height=&quot;15dp&quot;
+app:civ_border_width=&quot;10dp&quot;
+app:civ_border_color=&quot;#05df29&quot;
+
+android:src=&quot;@mipmap/ic_launcher&quot;
+android:id=&quot;@+id/img_on&quot;
+android:visibility=&quot;gone&quot;
+android:layout_below=&quot;@id/username&quot;
+android:layout_marginTop=&quot;10dp&quot;
+android:layout_marginLeft=&quot;-15dp&quot;
+android:layout_toRightOf=&quot;@id/profile_image&quot;
+android:layout_toEndOf=&quot;@id/profile_image&quot;
+/&gt;
+&lt;de.hdodenhof.circleimageview.CircleImageView
+android:layout_width=&quot;15dp&quot;
+android:layout_height=&quot;15dp&quot;
+app:civ_border_width=&quot;10dp&quot;
+app:civ_border_color=&quot;#bfbfbf&quot;
+android:src=&quot;@mipmap/ic_launcher&quot;
+android:id=&quot;@+id/img_off&quot;
+android:visibility=&quot;gone&quot;
+android:layout_below=&quot;@id/username&quot;
+android:layout_marginTop=&quot;10dp&quot;
+android:layout_marginLeft=&quot;-15dp&quot;
+android:layout_toRightOf=&quot;@id/profile_image&quot;
+android:layout_toEndOf=&quot;@id/profile_image&quot;
+/&gt;
+&lt;TextView
+android:layout_width=&quot;wrap_content&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:layout_below=&quot;@id/username&quot;
+android:layout_toRightOf=&quot;@id/profile_image&quot;
+android:layout_marginTop=&quot;5dp&quot;
+android:paddingTop=&quot;5dp&quot;
+android:id=&quot;@+id/last_msg&quot;
+android:textColor=&quot;@color/colorPrimaryDark&quot;
+android:layout_marginLeft=&quot;20dp&quot;
+android:maxLines=&quot;1&quot;/&gt;
+&lt;/RelativeLayout&gt;
+➢ chat_item_left.xml
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;RelativeLayout xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+android:orientation=&quot;vertical&quot; android:layout_width=&quot;300dp&quot;
+android:padding=&quot;8dp&quot;
+android:layout_height=&quot;wrap_content&quot;&gt;
+&lt;de.hdodenhof.circleimageview.CircleImageView
+android:layout_width=&quot;30dp&quot;
+
+android:layout_height=&quot;30dp&quot;
+android:id=&quot;@+id/profile_image&quot;
+android:src=&quot;@mipmap/ic_launcher&quot;/&gt;
+&lt;TextView
+android:layout_width=&quot;wrap_content&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:layout_marginLeft=&quot;5dp&quot;
+android:layout_toEndOf=&quot;@+id/profile_image&quot;
+android:id=&quot;@+id/show_message&quot;
+android:text=&quot;Hello&quot;
+android:padding=&quot;8dp&quot;
+android:background=&quot;@drawable/background_left&quot;
+android:layout_marginStart=&quot;25dp&quot;/&gt;
+&lt;TextView
+android:layout_width=&quot;wrap_content&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:id=&quot;@+id/txt_seen&quot;
+android:layout_below=&quot;@id/show_message&quot;
+android:visibility=&quot;gone&quot;/&gt;
+&lt;/RelativeLayout&gt;
+➢ chat_item_right.xml
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;RelativeLayout xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:padding=&quot;8dp&quot;&gt;
+&lt;RelativeLayout
+android:layout_width=&quot;300dp&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:layout_alignParentEnd=&quot;true&quot;&gt;
+&lt;de.hdodenhof.circleimageview.CircleImageView
+android:layout_width=&quot;wrap_content&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:id=&quot;@+id/profile_image&quot;
+android:visibility=&quot;gone&quot;/&gt;
+&lt;TextView
+android:layout_width=&quot;wrap_content&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:background=&quot;@drawable/background_right&quot;
+android:text=&quot;hello&quot;
+android:layout_alignParentEnd=&quot;true&quot;
+android:layout_alignParentRight=&quot;true&quot;
+
+android:id=&quot;@+id/show_message&quot;
+android:textSize=&quot;18sp&quot;
+android:textColor=&quot;#fff&quot;
+android:padding=&quot;8dp&quot;/&gt;
+&lt;TextView
+android:layout_width=&quot;wrap_content&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:id=&quot;@+id/txt_seen&quot;
+android:layout_below=&quot;@id/show_message&quot;
+android:layout_alignParentRight=&quot;true&quot;
+android:layout_alignParentEnd=&quot;true&quot;/&gt;
+&lt;/RelativeLayout&gt;
+&lt;/RelativeLayout&gt;
+➢ fragment_chats.xml
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;RelativeLayout xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+xmlns:tools=&quot;http://schemas.android.com/tools&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;match_parent&quot;
+tools:context=&quot;.Fragments.ChatsFragment&quot;&gt;
+&lt;!-- TODO: Update blank fragment layout --&gt;
+&lt;androidx.recyclerview.widget.RecyclerView
+android:id=&quot;@+id/recycler_view&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;match_parent&quot;/&gt;
+&lt;/RelativeLayout&gt;
+➢ fragment_profile.xml
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;RelativeLayout
+xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+xmlns:tools=&quot;http://schemas.android.com/tools&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;match_parent&quot;
+android:padding=&quot;8dp&quot;
+tools:context=&quot;.Fragments.ProfileFragment&quot;&gt;
+&lt;androidx.cardview.widget.CardView
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;&gt;
+&lt;RelativeLayout
+android:layout_width=&quot;match_parent&quot;
+
+android:layout_height=&quot;wrap_content&quot;
+android:padding=&quot;8dp&quot;&gt;
+&lt;TextView
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:text=&quot;Profile&quot;
+android:textColor=&quot;@color/colorPrimary&quot;
+android:textStyle=&quot;bold&quot; /&gt;
+&lt;de.hdodenhof.circleimageview.CircleImageView
+android:id=&quot;@+id/profile_image&quot;
+android:layout_width=&quot;100dp&quot;
+android:layout_height=&quot;100dp&quot;
+android:layout_below=&quot;@id/profile_image&quot;
+android:layout_centerHorizontal=&quot;true&quot;
+android:src=&quot;@mipmap/ic_launcher&quot; /&gt;
+&lt;TextView
+android:id=&quot;@+id/username&quot;
+android:layout_width=&quot;wrap_content&quot;
+android:text=&quot;Username&quot;
+android:layout_centerHorizontal=&quot;true&quot;
+android:layout_marginTop=&quot;10dp&quot;
+android:layout_below=&quot;@id/profile_image&quot;
+android:layout_height=&quot;wrap_content&quot;/&gt;
+&lt;/RelativeLayout&gt;
+&lt;/androidx.cardview.widget.CardView&gt;
+&lt;/RelativeLayout&gt;
+➢ fragment_users.xml
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;RelativeLayout xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;
+xmlns:tools=&quot;http://schemas.android.com/tools&quot;
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;match_parent&quot;
+tools:context=&quot;.Fragments.UsersFragment&quot;&gt;
+&lt;EditText
+android:layout_width=&quot;match_parent&quot;
+android:layout_height=&quot;wrap_content&quot;
+android:layout_margin=&quot;5dp&quot;
+android:hint=&quot;Search.....&quot;
+android:id=&quot;@+id/search_users&quot;
+/&gt;
+&lt;androidx.recyclerview.widget.RecyclerView
+android:layout_below=&quot;@id/search_users&quot;
+android:layout_width=&quot;match_parent&quot;
+
+android:layout_height=&quot;match_parent&quot;
+android:id=&quot;@+id/recycler_view&quot;
+/&gt;
+&lt;/RelativeLayout&gt;
